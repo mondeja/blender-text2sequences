@@ -18,7 +18,7 @@ bl_info = {
     "author": "mondeja",
     "license": "BSD-3-Clause",
     "category": "Sequencer",
-    "version": (0, 0, 2),
+    "version": (0, 0, 3),
     "blender": (3, 3, 0),
     "support": "COMMUNITY",
 }

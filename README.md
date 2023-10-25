@@ -4,10 +4,10 @@ Plugin add-on to select a group of movie strips and create sequences based on ti
 
 ## Download
 
-Download the addon using [the next link](https://github.com/mondeja/blender-text2sequences/releases/download/v0.0.2/text2sequences.py):
+Download the addon using [the next link](https://github.com/mondeja/blender-text2sequences/releases/download/v0.0.3/text2sequences.py):
 
 ```
-https://github.com/mondeja/blender-text2sequences/releases/download/v0.0.2/text2sequences.py
+https://github.com/mondeja/blender-text2sequences/releases/download/v0.0.3/text2sequences.py
 ```
 
 ## Install
