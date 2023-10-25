@@ -10,7 +10,7 @@ import bpy_extras
 
 
 bl_info = {
-    "name": "Text2sequences",
+    "name": "text2sequences",
     "description": (
         "Select a group of strips and create sequences based on time"
         " marks defined in texts files."
@@ -18,7 +18,7 @@ bl_info = {
     "author": "mondeja",
     "license": "BSD-3-Clause",
     "category": "Sequencer",
-    "version": (0, 0, 4),
+    "version": (0, 0, 5),
     "blender": (3, 3, 0),
     "support": "COMMUNITY",
 }

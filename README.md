@@ -4,10 +4,10 @@ Plugin add-on to select a group of strips and create sequences based on time mar
 
 ## Download
 
-Download the addon using [the next link](https://github.com/mondeja/blender-text2sequences/releases/download/v0.0.4/text2sequences.py):
+Download the addon using [the next link](https://github.com/mondeja/blender-text2sequences/releases/download/v0.0.5/text2sequences.py):
 
 ```
-https://github.com/mondeja/blender-text2sequences/releases/download/v0.0.4/text2sequences.py
+https://github.com/mondeja/blender-text2sequences/releases/download/v0.0.5/text2sequences.py
 ```
 
 ## Install
@@ -19,7 +19,7 @@ downloaded file:
   <img src="images/install-button.png">
 </p>
 
-Search for `Text2sequences` in the search bar and enable the addon marking the
+Search for `text2sequences` in the search bar and enable the addon marking the
 top-left checkbox:
 
 <p align="center">
