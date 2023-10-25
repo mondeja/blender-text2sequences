@@ -18,12 +18,17 @@ bl_info = {
     "author": "mondeja",
     "license": "BSD-3-Clause",
     "category": "Sequencer",
-    "version": (0, 0, 5),
-    "blender": (3, 3, 0),
+    "version": (0, 0, 6),
+    "blender": (2, 90, 0),
     "support": "COMMUNITY",
 }
 
 X_OFFSET_FRAMES_SPACE_TO_DRAW = 10000
+
+# On Blender 2 there is no transform overwrite in sequencer, see:
+# https://wiki.blender.org/wiki/Reference/Release_Notes/3.0/VFX
+# https://projects.blender.org/blender/blender/commit/59cd9c6da682
+ON_BLENDER_2 = bpy.app.version[0] < 3  # noqa: PLR2004
 
 
 def get_exception_traceback_str(exc: Exception) -> str:
@@ -229,9 +234,10 @@ class Text2Sequences(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
     def graceful_state_recovering(self, state_backup, context):
         """Recover the state of the scene before the operator execution."""
         # Recover old overlap mode
-        context.scene.tool_settings.sequencer_tool_settings.overlap_mode = state_backup[
-            "overlap-mode"
-        ]
+        if not ON_BLENDER_2:
+            context.scene.tool_settings.sequencer_tool_settings.overlap_mode = (
+                state_backup["overlap-mode"]
+            )
 
         # Select previous selected sequences
         for seq in context.sequences:
@@ -245,10 +251,11 @@ class Text2Sequences(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
         state_backup = {
             "original-sequence-names": [seq.name for seq in context.sequences],
             "selected-sequence-names": [seq.name for seq in context.selected_sequences],
-            "overlap-mode": (
-                context.scene.tool_settings.sequencer_tool_settings.overlap_mode
-            ),
         }
+        if not ON_BLENDER_2:
+            state_backup[
+                "overlap-mode"
+            ] = context.scene.tool_settings.sequencer_tool_settings.overlap_mode
 
         try:
             return self._execute_unsafe(context, state_backup)
@@ -311,8 +318,11 @@ class Text2Sequences(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
         return time_marks
 
     def _execute_unsafe(self, context, state_backup):
-        sequencer_tool_settings = context.scene.tool_settings.sequencer_tool_settings
-        sequencer_tool_settings.overlap_mode = "SHUFFLE"
+        if not ON_BLENDER_2:
+            sequencer_tool_settings = (
+                context.scene.tool_settings.sequencer_tool_settings
+            )
+            sequencer_tool_settings.overlap_mode = "SHUFFLE"
 
         time_marks = self.get_time_marks(state_backup, context)
 
@@ -397,7 +407,8 @@ class Text2Sequences(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
             # Save last channel frame end
             last_channel_frame_end = last_channel_frame_end + frame_end - frame_start
 
-        sequencer_tool_settings.overlap_mode = state_backup["overlap-mode"]
+        if not ON_BLENDER_2:
+            sequencer_tool_settings.overlap_mode = state_backup["overlap-mode"]
 
         new_sequences = [
             seq
