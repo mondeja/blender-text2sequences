@@ -1,6 +1,6 @@
 # blender-text2sequences
 
-![Blender version](https://img.shields.io/badge/Blencer-%3E=2.90-blue?logo=blender&logoColor=white)
+![Blender >= v2.90](https://img.shields.io/badge/Blencer-%3E=2.90-blue?logo=blender&logoColor=white)
 
 Blender add-on to select a group of strips and create sequences based on time marks defined in text files.
 
@@ -42,7 +42,7 @@ Create a `.txt` file and edit it with a content like:
 1 00:01 00:02
 ```
 
-Select two sequences in the Video Sequence Editor:
+Select two movie clips with their sound channels in the Video Sequence Editor:
 
 <p align="center">
   <img src="images/select-sequences.png" width="80%">
@@ -56,11 +56,11 @@ Under `Add` menu, you can see that now the `Text to sequences` operator is enabl
 
 ### Explanation
 
-The plugin builds a continuous sequence based on cuts on the original clips.
+The plugin builds a continuous sequence based on cuts of the original clips.
 
-Channels 2 (movie) and 1 (sound), which compound the first movie channel, is named "1" in the text file and the channel 4 and 3 are "2".
+Channels 2 (movie) and 1 (sound), which compound the first media container channel, is named "1" in the text file and the channel 4 and 3 are "2".
 
-In this example, a continuos sequence will be generated using pieces of the original clips defined by time marks:
+In this example, a continous sequence will be generated from cuts of the original clips defined by time marks:
 
 - `1 00:01 00:03` -> Cut from second 1 to second 3 of first movie (channels 2 and 1) and place from seconds 0 to 2 of the new sequence.
 - `2 00:02 00:04` -> Cut from second 2 to second 4 of first movie (channels 4 and 3) and place from seconds 2 to 4 of the new sequence.
@@ -105,13 +105,13 @@ Mark times are defined in one of the next regular expressions:
 # This is a comment
 1 00:01 00:03                # minutes:seconds
 2 00:01.600 00:04.200        # minutes:seconds.microseconds
-1 180 300  # 3 to 5 seconds  # frames
+1 180 300                    # frames
 2 00:05:04.100 00:06:07.300  # hours:minutes:seconds.microseconds
 ```
 
 #### `.srt`
 
-For _\*.srt_ files, time marks are defined in SRT format, changing the number of the subtitle by the number of the media container (movie sequence) to use.
+For _\*.srt_ files, time marks are defined in SRT format, changing the number of the subtitle by the number of the media container (movie sequence) to use. Subtitles values are ignored.
 
 ```txt
 <media-container>
@@ -128,7 +128,7 @@ Supports comments with `#` characters and fields separation by any number of spa
 
 ```srt
 # <hours>:<minutes>:<seconds>(,<microseconds>)? (eg. 01:02:03,456)
-(\d+:)?\d+:\d+(\,\d+)
+\d+:\d+:\d+(\,\d+)
 ```
 
 ##### Example
@@ -154,5 +154,5 @@ When you click on `Add` -> `Text to sequences`, the file browser will display a 
 
 - <a href="#property-select_new_sequences">#</a> **Select new sequences** (_enabled_): Select the new generated sequences after creating them.
 - <a href="#property-select_original_sequences">#</a> **Select original sequences**: Select the original sequences after creating the new ones.
-- <a href="#property-mute_original_sequences">#</a> **Mute original sequences**: Mute channels of original sequences after creating the new ones.
 - <a href="#property-mute_new_sequences">#</a> **Mute new sequences**: Mute channels of new sequences after creating them.
+- <a href="#property-mute_original_sequences">#</a> **Mute original sequences**: Mute channels of original sequences after creating the new ones.
