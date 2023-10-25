@@ -2,9 +2,7 @@
 
 ![Blender >= v2.90](https://img.shields.io/badge/Blencer-%3E=2.90-blue?logo=blender&logoColor=white)
 
-Blender add-on to select a group of strips and create sequences based on time marks defined in text files.
-
-Ideal to create a first edition of a video based on a script or create video previews.
+Blender add-on to select a group of strips and create sequences based on time marks defined in text files. Ideal to create a first edition of a video based on a script or create video previews.
 
 ## Download
 
