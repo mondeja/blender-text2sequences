@@ -1,9 +1,9 @@
 [tool.black]
-line-length = 80
+line-length = 88
 target-version = ["py38"]
 
 [tool.ruff]
-line-length = 80
+line-length = 88
 target-version = "py38"
 select = [
   "W",

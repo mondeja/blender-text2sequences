@@ -7,7 +7,7 @@ import bpy_extras
 
 
 bl_info = {
-    "name": "Text to sequences",
+    "name": "Text2sequences",
     "description": (
         "Select a group of movie strips and create sequences based on time"
         " marks defined in a simple text file."
@@ -15,20 +15,19 @@ bl_info = {
     "author": "mondeja",
     "license": "BSD-3-Clause",
     "category": "Sequencer",
-    "version": (0, 0, 1),
+    "version": (0, 0, 2),
     "blender": (3, 3, 0),
     "support": "COMMUNITY",
 }
 
-FPS = 60
 X_OFFSET_FRAMES_SPACE_TO_DRAW = 10000
 
 
-def time_string_to_frames(time_string):
+def time_string_to_frames(time_string, fps):
     """Converts a time string to frames."""
     if "." in time_string:
         time_string, miliseconds = time_string.split(".")
-        ms_frames = int(int(miliseconds) / 1000 * FPS)
+        ms_frames = int(int(miliseconds) / 1000 * fps)
     else:
         ms_frames = 0
 
@@ -40,9 +39,7 @@ def time_string_to_frames(time_string):
     else:
         raise ValueError("Invalid time string")
 
-    return (
-        ms_frames + (int(hours) * 3600 + int(minutes) * 60 + int(seconds)) * FPS
-    )
+    return ms_frames + (int(hours) * 3600 + int(minutes) * 60 + int(seconds)) * fps
 
 
 def get_selected_sequences_number_by_order(context):
@@ -57,13 +54,10 @@ def get_selected_sequences_number_by_order(context):
                     other_seq.type == "SOUND"
                     and sequence.channel - other_seq.channel == 1
                     and (
-                        sequence.name.split(".")[0]
-                        == other_seq.name.split(".")[0]
+                        sequence.name.split(".")[0] == other_seq.name.split(".")[0]
                         or (
-                            other_seq.frame_final_start
-                            == sequence.frame_final_start
-                            and other_seq.frame_final_end
-                            == sequence.frame_final_end
+                            other_seq.frame_final_start == sequence.frame_final_start
+                            and other_seq.frame_final_end == sequence.frame_final_end
                         )
                     )
                 ):
@@ -72,7 +66,7 @@ def get_selected_sequences_number_by_order(context):
     return result
 
 
-def read_marks_from_text_file(filepath):
+def read_marks_from_text_file(filepath, fps):
     with open(filepath, encoding="utf-8") as f:
         lines = [line.strip() for line in f.readlines()]
 
@@ -88,7 +82,7 @@ def read_marks_from_text_file(filepath):
                 time_mark.append(int(part))
             elif re.match(r"^(\d+:)?\d+:\d+(\.\d+)?$", part):  # hour
                 try:
-                    frames = time_string_to_frames(part)
+                    frames = time_string_to_frames(part, fps)
                 except ValueError as exc:
                     raise ValueError(
                         f"Invalid time string at {filepath}:{line_index + 1}"
@@ -119,10 +113,14 @@ def get_y_offset_of_first_free_channel_for_selection(context):
     return first_free_channel - first_selected_channel
 
 
-def max_sequence_frames(sequences):
-    return max(
-        [seq.frame_final_end - seq.frame_final_start for seq in sequences],
-    )
+def select_sequences(sequences):
+    for seq in sequences:
+        seq.select = True
+
+
+def unselect_sequences(sequences):
+    for seq in sequences:
+        seq.select = False
 
 
 class Text2Sequences(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
@@ -130,15 +128,28 @@ class Text2Sequences(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
 
     bl_idname = "sequencer.text2sequences"
     bl_label = "Text to sequences"
+    bl_options = {"REGISTER", "UNDO"}
 
     filter_glob: bpy.props.StringProperty(
         default="*.text;*.txt;",
         options={"HIDDEN"},
     )
 
+    select_new_sequences: bpy.props.BoolProperty(
+        name="Select new sequences",
+        description="Select new sequences after creating them.",
+        default=True,
+    )
+
+    select_original_sequences: bpy.props.BoolProperty(
+        name="Select original sequences",
+        description="Select original sequences after creating the new ones.",
+        default=False,
+    )
+
     mute_original_sequences: bpy.props.BoolProperty(
         name="Mute original sequences",
-        description="Mute original sequences after creating the new.",
+        description="Mute original sequences after creating the new ones.",
         default=False,
     )
 
@@ -148,24 +159,24 @@ class Text2Sequences(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
         default=False,
     )
 
-    select_new_sequences: bpy.props.BoolProperty(
-        name="Select new sequences",
-        description="Select new sequences after creating them.",
-        default=True,
-    )
-
     def execute(self, context):  # noqa: PLR0912, PLR0915
         """Execute the operator."""
         before_execute_sequence_names = [seq.name for seq in context.sequences]
         before_execute_overlap_mode = (
             context.scene.tool_settings.sequencer_tool_settings.overlap_mode
         )
-        context.scene.tool_settings.sequencer_tool_settings.overlap_mode = (
-            "SHUFFLE"
-        )
+        context.scene.tool_settings.sequencer_tool_settings.overlap_mode = "SHUFFLE"
+        first_movie_sequence_fps = None
+        for seq in context.sequences:
+            if seq.type == "MOVIE":
+                first_movie_sequence_fps = int(seq.fps)
+                break
 
         try:
-            time_marks = read_marks_from_text_file(self.filepath)
+            time_marks = read_marks_from_text_file(
+                self.filepath,
+                first_movie_sequence_fps,
+            )
         except ValueError as exc:
             self.report({"ERROR_INVALID_INPUT"}, str(exc))
             return {"CANCELLED"}
@@ -192,30 +203,22 @@ class Text2Sequences(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
         if self.mute_original_sequences:
             bpy.ops.sequencer.mute(unselected=False)
 
-        selection_copy_offset_y = (
-            get_y_offset_of_first_free_channel_for_selection(
-                context,
-            )
+        selection_copy_offset_y = get_y_offset_of_first_free_channel_for_selection(
+            context,
         )
         last_channel_frame_end = 0
-        start_frame = None
+        initial_frame = min([seq.frame_final_start for seq in time_marks[0][3]])
 
         # For each time mark, create a new sequence
         for i, (n_sequence_channel, frame_start, frame_end, seqs) in enumerate(
             time_marks,
         ):
-            for seq in context.selected_sequences:
-                seq.select = False
-            for seq in seqs:
-                seq.select = True
+            unselect_sequences(context.selected_sequences)
+            select_sequences(seqs)
 
-            seqs_max_frames = max(
+            seqs_n_frames = max(
                 [seq.frame_final_end - seq.frame_final_start for seq in seqs],
             )
-            min_start_frame = min([seq.frame_final_start for seq in seqs])
-            min([seq.channel for seq in seqs])
-            if start_frame is None:
-                start_frame = min_start_frame
 
             offset_y = (
                 selection_copy_offset_y
@@ -227,7 +230,7 @@ class Text2Sequences(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
             bpy.ops.sequencer.duplicate_move()
             bpy.ops.transform.seq_slide(
                 value=(
-                    -seqs_max_frames + X_OFFSET_FRAMES_SPACE_TO_DRAW,
+                    -seqs_n_frames + X_OFFSET_FRAMES_SPACE_TO_DRAW,
                     offset_y,
                 ),
                 snap=False,
@@ -237,23 +240,16 @@ class Text2Sequences(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
                 bpy.ops.sequencer.unmute()
 
             # Split sequences
-            selected_seqs_names = [
-                seq.name for seq in context.selected_sequences
-            ]
+            selected_seqs_names = [seq.name for seq in context.selected_sequences]
             before_split_seqs_names = [seq.name for seq in context.sequences]
 
             channel = context.selected_sequences[0].channel
-            start_split, end_split = (
-                frame_start + start_frame,
-                frame_end + start_frame,
-            )
-
             bpy.ops.sequencer.split(
-                frame=start_split + X_OFFSET_FRAMES_SPACE_TO_DRAW,
+                frame=frame_start + initial_frame + X_OFFSET_FRAMES_SPACE_TO_DRAW,
                 channel=channel,
             )
             bpy.ops.sequencer.split(
-                frame=end_split + X_OFFSET_FRAMES_SPACE_TO_DRAW,
+                frame=frame_end + initial_frame + X_OFFSET_FRAMES_SPACE_TO_DRAW,
                 channel=channel,
             )
             # Delete last sequence (at the right of the split)
@@ -270,8 +266,7 @@ class Text2Sequences(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
             bpy.ops.sequencer.delete()
 
             # Move new sequences
-            for seq in new_sequences:
-                seq.select = True
+            select_sequences(new_sequences)
             bpy.ops.transform.seq_slide(
                 value=(
                     -frame_start
@@ -283,9 +278,7 @@ class Text2Sequences(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
             )
 
             # Save last channel frame end
-            last_channel_frame_end = (
-                last_channel_frame_end + frame_end - frame_start
-            )
+            last_channel_frame_end = last_channel_frame_end + frame_end - frame_start
 
         context.scene.tool_settings.sequencer_tool_settings.overlap_mode = (
             before_execute_overlap_mode
@@ -297,16 +290,23 @@ class Text2Sequences(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
             if seq.name not in before_execute_sequence_names
         ]
 
-        for seq in new_sequences:
-            seq.select = True
+        select_sequences(new_sequences)
         if self.mute_new_sequences:
             bpy.ops.sequencer.mute(unselected=False)
         else:
             bpy.ops.sequencer.unmute()
 
         if not self.select_new_sequences:
-            for seq in new_sequences:
-                seq.select = False
+            unselect_sequences(new_sequences)
+
+        if self.select_original_sequences:
+            select_sequences(
+                [
+                    seq
+                    for seq in context.sequences
+                    if seq.name in before_execute_sequence_names
+                ],
+            )
 
         return {"FINISHED"}
 
