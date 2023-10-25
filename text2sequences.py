@@ -12,13 +12,13 @@ import bpy_extras
 bl_info = {
     "name": "Text2sequences",
     "description": (
-        "Select a group of movie strips and create sequences based on time"
-        " marks defined in a simple text file."
+        "Select a group of strips and create sequences based on time"
+        " marks defined in texts files."
     ),
     "author": "mondeja",
     "license": "BSD-3-Clause",
     "category": "Sequencer",
-    "version": (0, 0, 3),
+    "version": (0, 0, 4),
     "blender": (3, 3, 0),
     "support": "COMMUNITY",
 }
@@ -56,24 +56,39 @@ def get_selected_sequences_number_by_order(context):
     seq_number = 1
 
     for sequence in context.selected_sequences:
-        if sequence.type != "MOVIE":
-            continue
-
-        result[seq_number] = [sequence]
-        for other_seq in context.selected_sequences:
-            if (
-                other_seq.type == "SOUND"
-                and sequence.channel - other_seq.channel == 1
-                and (
-                    sequence.name.split(".")[0] == other_seq.name.split(".")[0]
-                    or (
-                        other_seq.frame_final_start == sequence.frame_final_start
-                        and other_seq.frame_final_end == sequence.frame_final_end
+        if sequence.type == "MOVIE":
+            result[seq_number] = [sequence]
+            for other_seq in context.selected_sequences:
+                if (
+                    other_seq.type == "SOUND"
+                    and sequence.channel - other_seq.channel == 1
+                    and (
+                        sequence.name.split(".")[0] == other_seq.name.split(".")[0]
+                        or (
+                            other_seq.frame_final_start == sequence.frame_final_start
+                            and other_seq.frame_final_end == sequence.frame_final_end
+                        )
                     )
-                )
-            ):
-                result[seq_number].append(other_seq)
-        seq_number += 1
+                ):
+                    result[seq_number].append(other_seq)
+            seq_number += 1
+        elif sequence.type == "SOUND":
+            is_movie_sequence = False
+            for other_seq in context.selected_sequences:
+                if (
+                    other_seq.type == "MOVIE"
+                    and other_seq.channel - sequence.channel == 1
+                ):
+                    is_movie_sequence = True
+                    break
+
+            if not is_movie_sequence:
+                result[seq_number] = [sequence]
+                seq_number += 1
+        else:
+            result[seq_number] = [sequence]
+            seq_number += 1
+
     return result
 
 
@@ -416,12 +431,7 @@ class Text2Sequences(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
 
         https://docs.blender.org/api/current/bpy.types.Sequence.html#bpy.types.Sequence.type
         """
-        return len(context.selected_sequences) > 0 and (
-            all(
-                sequence.type in ("MOVIE", "SOUND")
-                for sequence in context.selected_sequences
-            )
-        )
+        return bool(len(context.selected_sequences))
 
 
 # Only needed if you want to add into a dynamic menu

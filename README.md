@@ -1,13 +1,13 @@
 # blender-text2sequences
 
-Plugin add-on to select a group of movie strips and create sequences based on time marks defined in a simple text file.
+Plugin add-on to select a group of strips and create sequences based on time marks defined in text files.
 
 ## Download
 
-Download the addon using [the next link](https://github.com/mondeja/blender-text2sequences/releases/download/v0.0.3/text2sequences.py):
+Download the addon using [the next link](https://github.com/mondeja/blender-text2sequences/releases/download/v0.0.4/text2sequences.py):
 
 ```
-https://github.com/mondeja/blender-text2sequences/releases/download/v0.0.3/text2sequences.py
+https://github.com/mondeja/blender-text2sequences/releases/download/v0.0.4/text2sequences.py
 ```
 
 ## Install
@@ -52,7 +52,7 @@ Under `Add` menu, you can see that now the `Text to sequences` operator is enabl
 
 ### Explanation
 
-The plugin builds a continuous sequence based on cuts on the original movie clips.
+The plugin builds a continuous sequence based on cuts on the original clips.
 
 Channels 2 (movie) and 1 (sound), which compound the first movie channel, is named "1" in the text file and the channel 4 and 3 are "2".
 
@@ -68,15 +68,15 @@ In this example, a continuos sequence will be generated using pieces of the orig
 
 #### `.txt`
 
-The time marks are defined each one in a line with the next format:
+For _\*.txt_ files, time marks are defined each one in a line with the next format:
 
 ```txt
 <media-container> <start-time> <end-time>
 ```
 
 - `<media-container>` (_number_): Number of the media container (movie clip) to use. Starts in 1.
-- `<start-time>` (_time_): Start time of the cut in the original movie clip.
-- `<end-time>` (_time_): End time of the cut in the original movie clip.
+- `<start-time>` (_time_): Start time of the cut in the original clip.
+- `<end-time>` (_time_): End time of the cut in the original clip.
 
 Supports comments with `#` characters and fields separation by any number of spaces or tabs.
 
@@ -95,9 +95,19 @@ Mark times are defined in one of the next regular expressions:
 \d+
 ```
 
+##### Example
+
+```txt
+# This is a comment
+1 00:01 00:03                # minutes:seconds
+2 00:01.600 00:04.200        # minutes:seconds.microseconds
+1 180 300  # 3 to 5 seconds  # frames
+2 00:05:04.100 00:06:07.300  # hours:minutes:seconds.microseconds
+```
+
 #### `.srt`
 
-The time marks are defined in SRT format, changing the number of the subtitle by the number of the media container (movie sequence) to use.
+For _\*.srt_ files, time marks are defined in SRT format, changing the number of the subtitle by the number of the media container (movie sequence) to use.
 
 ```txt
 <media-container>
@@ -105,8 +115,8 @@ The time marks are defined in SRT format, changing the number of the subtitle by
 ```
 
 - `<media-container>` (_number_): Number of the media container (movie clip) to use. Starts in 1.
-- `<start-time>` (_SRT time_): Start time of the cut in the original movie clip.
-- `<end-time>` (_SRT time_): End time of the cut in the original movie clip.
+- `<start-time>` (_SRT time_): Start time of the cut in the original clip.
+- `<end-time>` (_SRT time_): End time of the cut in the original clip.
 
 Supports comments with `#` characters and fields separation by any number of spaces or tabs.
 
@@ -115,6 +125,23 @@ Supports comments with `#` characters and fields separation by any number of spa
 ```srt
 # <hours>:<minutes>:<seconds>(,<microseconds>)? (eg. 01:02:03,456)
 (\d+:)?\d+:\d+(\,\d+)
+```
+
+##### Example
+
+```txt
+# This is a comment
+1
+00:00:01,000 --> 00:00:03,000  # hours:minutes:seconds,microseconds
+
+2
+00:00:01,600 --> 00:00:04,200
+
+1
+00:00:03,000 --> 00:00:05,000
+
+2
+00:05:04,100 --> 00:06:07,300
 ```
 
 ### Properties
