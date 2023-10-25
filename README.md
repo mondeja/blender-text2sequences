@@ -4,10 +4,10 @@ Plugin add-on to select a group of movie strips and create sequences based on ti
 
 ## Download
 
-Download the addon using [the next link](https://github.com/mondeja/blender-text2sequences/releases/download/v0.0.1/text2sequences.py):
+Download the addon using [the next link](https://github.com/mondeja/blender-text2sequences/releases/download/v0.0.2/text2sequences.py):
 
 ```
-https://github.com/mondeja/blender-text2sequences/releases/download/v0.0.1/text2sequences.py
+https://github.com/mondeja/blender-text2sequences/releases/download/v0.0.2/text2sequences.py
 ```
 
 ## Install
@@ -23,7 +23,7 @@ Search for `Text2sequences` in the search bar and enable the addon marking the
 top-left checkbox:
 
 <p align="center">
-  <img src="images/enable-addon.png">
+  <img src="images/enable-addon.png" width="80%">
 </p>
 
 ## Usage
@@ -41,13 +41,13 @@ Create a file with a content like:
 Select two sequences in the Video Sequence Editor:
 
 <p align="center">
-  <img src="images/select-sequences.png">
+  <img src="images/select-sequences.png" width="80%">
 </p>
 
 Under `Add` menu, you can see that now the `Text to sequences` operator is enabled. Press it and open the text file with time marks. Press `Text to sequences` button and the result will be:
 
 <p align="center">
-  <img src="images/usage-result.png">
+  <img src="images/usage-result.png" width="80%">
 </p>
 
 ### Explanation
@@ -100,6 +100,6 @@ Mark times are defined in one of the next regular expressions:
 When you click on `Add` -> `Text to sequences`, the file browser will display a menu at the side with options to customize the generation of the new timeline of sequences.
 
 - <a href="#property-select_new_sequences">#</a> **Select new sequences** (_enabled_): Select the new generated sequences after creating them.
-- <a href="#property-select_original_sequences">#</a> **Select original sequences** (_disabled_): Select the original sequences after creating the new ones.
-- <a href="#property-mute_original_sequences">#</a> **Mute original sequences** (_disabled_): Mute channels of original movie clips after creating the new ones.
-- <a href="#property-mute_new_sequences">#</a> **Mute new sequences** (_disabled_): Mute channels of new movie clips after creating them.
+- <a href="#property-select_original_sequences">#</a> **Select original sequences**: Select the original sequences after creating the new ones.
+- <a href="#property-mute_original_sequences">#</a> **Mute original sequences**: Mute channels of original movie clips after creating the new ones.
+- <a href="#property-mute_new_sequences">#</a> **Mute new sequences**: Mute channels of new movie clips after creating them.
