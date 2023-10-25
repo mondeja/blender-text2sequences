@@ -228,7 +228,7 @@ class Text2Sequences(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
     def execute(self, context):
         """Execute the operator."""
         state_backup = {
-            "sequence-names": [seq.name for seq in context.sequences],
+            "original-sequence-names": [seq.name for seq in context.sequences],
             "selected-sequence-names": [seq.name for seq in context.selected_sequences],
             "overlap-mode": (
                 context.scene.tool_settings.sequencer_tool_settings.overlap_mode
@@ -242,16 +242,14 @@ class Text2Sequences(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
             self.graceful_state_recovering(state_backup, context)
             return {"CANCELLED"}
 
-    def _execute_unsafe(self, context, state_backup):  # noqa: PLR0912, PLR0915
-        sequencer_tool_settings = context.scene.tool_settings.sequencer_tool_settings
-        sequencer_tool_settings.overlap_mode = "SHUFFLE"
-
-        first_movie_sequence_fps = None
+    def get_time_marks(self, state_backup, context):
+        """Get time marks from the input file."""
+        fps = None
         for seq in context.sequences:
             if seq.type == "MOVIE":
-                first_movie_sequence_fps = int(seq.fps)
+                fps = int(seq.fps)
                 break
-        if first_movie_sequence_fps is None:
+        if fps is None:
             return self.graceful_error(
                 "ERROR_INVALID_INPUT",
                 "No movie sequence found in the scene.",
@@ -263,15 +261,9 @@ class Text2Sequences(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
 
         try:
             if file_ext == ".srt":
-                time_marks = get_marks_from_srt_lines(
-                    self.filepath,
-                    first_movie_sequence_fps,
-                )
+                time_marks = get_marks_from_srt_lines(self.filepath, fps)
             else:
-                time_marks = get_marks_from_text_lines(
-                    self.filepath,
-                    first_movie_sequence_fps,
-                )
+                time_marks = get_marks_from_text_lines(self.filepath, fps)
         except ValueError as exc:
             return self.graceful_error(
                 "ERROR_INVALID_INPUT",
@@ -300,6 +292,14 @@ class Text2Sequences(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
                 )
             else:
                 time_mark.append(seqs)
+
+        return time_marks
+
+    def _execute_unsafe(self, context, state_backup):
+        sequencer_tool_settings = context.scene.tool_settings.sequencer_tool_settings
+        sequencer_tool_settings.overlap_mode = "SHUFFLE"
+
+        time_marks = self.get_time_marks(state_backup, context)
 
         if self.mute_original_sequences:
             bpy.ops.sequencer.mute(unselected=False)
@@ -387,7 +387,7 @@ class Text2Sequences(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
         new_sequences = [
             seq
             for seq in context.sequences
-            if seq.name not in state_backup["sequence-names"]
+            if seq.name not in state_backup["original-sequence-names"]
         ]
 
         select_sequences(new_sequences)
@@ -404,7 +404,7 @@ class Text2Sequences(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
                 [
                     seq
                     for seq in context.sequences
-                    if seq.name in state_backup["sequence-names"]
+                    if seq.name in state_backup["original-sequence-names"]
                 ],
             )
 
