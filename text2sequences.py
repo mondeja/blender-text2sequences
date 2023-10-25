@@ -1,6 +1,9 @@
 """Text-to-sequences Blender add-on."""
 
+import io
+import os.path
 import re
+import traceback
 
 import bpy
 import bpy_extras
@@ -23,10 +26,16 @@ bl_info = {
 X_OFFSET_FRAMES_SPACE_TO_DRAW = 10000
 
 
-def time_string_to_frames(time_string, fps):
+def get_exception_traceback_str(exc: Exception) -> str:
+    file = io.StringIO()
+    traceback.print_exception(exc, file=file)
+    return file.getvalue().rstrip()
+
+
+def time_string_to_frames(time_string, fps, miliseconds_separator="."):
     """Converts a time string to frames."""
-    if "." in time_string:
-        time_string, miliseconds = time_string.split(".")
+    if miliseconds_separator in time_string:
+        time_string, miliseconds = time_string.split(miliseconds_separator)
         ms_frames = int(int(miliseconds) / 1000 * fps)
     else:
         ms_frames = 0
@@ -47,42 +56,57 @@ def get_selected_sequences_number_by_order(context):
     seq_number = 1
 
     for sequence in context.selected_sequences:
-        if sequence.type == "MOVIE":
-            result[seq_number] = [sequence]
-            for other_seq in context.selected_sequences:
-                if (
-                    other_seq.type == "SOUND"
-                    and sequence.channel - other_seq.channel == 1
-                    and (
-                        sequence.name.split(".")[0] == other_seq.name.split(".")[0]
-                        or (
-                            other_seq.frame_final_start == sequence.frame_final_start
-                            and other_seq.frame_final_end == sequence.frame_final_end
-                        )
+        if sequence.type != "MOVIE":
+            continue
+
+        result[seq_number] = [sequence]
+        for other_seq in context.selected_sequences:
+            if (
+                other_seq.type == "SOUND"
+                and sequence.channel - other_seq.channel == 1
+                and (
+                    sequence.name.split(".")[0] == other_seq.name.split(".")[0]
+                    or (
+                        other_seq.frame_final_start == sequence.frame_final_start
+                        and other_seq.frame_final_end == sequence.frame_final_end
                     )
-                ):
-                    result[seq_number].append(other_seq)
-            seq_number += 1
+                )
+            ):
+                result[seq_number].append(other_seq)
+        seq_number += 1
     return result
 
 
-def read_marks_from_text_file(filepath, fps):
+def normalize_text(value):
+    return value.strip().replace("\t", " ")
+
+
+def read_lines(filepath):
     with open(filepath, encoding="utf-8") as f:
-        lines = [line.strip() for line in f.readlines()]
+        for line in f.readlines():
+            if "#" in line:
+                new_line = normalize_text(line.split("#")[0].strip())
+            else:
+                new_line = normalize_text(line.strip())
+            if new_line != "":
+                yield new_line
 
+
+def get_marks_from_text_lines(filepath, fps):
     time_marks = []
-    for line_index, line in enumerate(lines):
-        if line.strip() == "" or line.strip().startswith("#"):
-            continue
-
+    for line_index, line in enumerate(read_lines(filepath)):
         time_mark = []
-        line_parts = line.replace("\t", " ").split(" ")
-        for i, part in enumerate(line_parts):
-            if i == 0 or re.match(r"^\d+$", part):  # number
+        for i, part in enumerate(line.split(" ")):
+            if i == 0 or re.match(r"^\d+$", part):
+                # frane or media container number
                 time_mark.append(int(part))
-            elif re.match(r"^(\d+:)?\d+:\d+(\.\d+)?$", part):  # hour
+            elif re.match(r"^(\d+:)?\d+:\d+(\.\d+)?$", part):
                 try:
-                    frames = time_string_to_frames(part, fps)
+                    frames = time_string_to_frames(
+                        part,
+                        fps,
+                        miliseconds_separator=".",
+                    )
                 except ValueError as exc:
                     raise ValueError(
                         f"Invalid time string at {filepath}:{line_index + 1}"
@@ -99,18 +123,40 @@ def read_marks_from_text_file(filepath, fps):
     return time_marks
 
 
-def get_y_offset_of_first_free_channel_for_selection(context):
-    """Returns the first channel with space for new channels."""
-    selected_sequences = context.selected_sequences
-    first_selected_channel = min([seq.channel for seq in selected_sequences])
-    last_selected_channel = max([seq.channel for seq in selected_sequences])
+def get_marks_from_srt_lines(filepath, fps):
+    time_marks = []
+    inside_channel = None
+    for line_index, line in enumerate(read_lines(filepath)):
+        if line.isdigit():
+            inside_channel = int(line)
+        elif "-->" in line:
+            time_mark = [inside_channel]
+            for part in line.split("-->"):
+                try:
+                    frames = time_string_to_frames(
+                        part.strip(),
+                        fps,
+                        miliseconds_separator=",",
+                    )
+                except ValueError as exc:
+                    raise ValueError(
+                        f"Invalid time string at {filepath}:{line_index + 1}"
+                        f" for value '{part}' in line '{line}'",
+                    ) from exc
+                else:
+                    time_mark.append(frames)
+            time_marks.append(time_mark)
+    return time_marks
 
-    first_free_channel = last_selected_channel + 1
+
+def get_y_offset_of_first_free_channel_for_sequences(context, sequences):
+    """Returns the first channel with space for new channels."""
+    first_free_channel = max([seq.channel for seq in sequences]) + 1
     for seq in context.sequences:
         if seq.channel >= first_free_channel:
             first_free_channel = seq.channel + 1
 
-    return first_free_channel - first_selected_channel
+    return first_free_channel - min([seq.channel for seq in sequences])
 
 
 def select_sequences(sequences):
@@ -124,14 +170,14 @@ def unselect_sequences(sequences):
 
 
 class Text2Sequences(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
-    """Text-to-sequences Blender operator."""
+    """Text to sequences Blender operator."""
 
     bl_idname = "sequencer.text2sequences"
     bl_label = "Text to sequences"
     bl_options = {"REGISTER", "UNDO"}
 
     filter_glob: bpy.props.StringProperty(
-        default="*.text;*.txt;",
+        default="*.text;*.txt;*.srt;",
         options={"HIDDEN"},
     )
 
@@ -159,52 +205,108 @@ class Text2Sequences(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
         default=False,
     )
 
-    def execute(self, context):  # noqa: PLR0912, PLR0915
+    def graceful_error(self, error_type, error_msg, state_backup, context):
+        """Report an error and cancel the operator."""
+        self.report({error_type}, error_msg)
+        self.graceful_state_recovering(state_backup, context)
+        return {"CANCELLED"}
+
+    def graceful_state_recovering(self, state_backup, context):
+        """Recover the state of the scene before the operator execution."""
+        # Recover old overlap mode
+        context.scene.tool_settings.sequencer_tool_settings.overlap_mode = state_backup[
+            "overlap-mode"
+        ]
+
+        # Select previous selected sequences
+        for seq in context.sequences:
+            if seq.name not in state_backup["selected-sequence-names"]:
+                seq.select = False
+            else:
+                seq.select = True
+
+    def execute(self, context):
         """Execute the operator."""
-        before_execute_sequence_names = [seq.name for seq in context.sequences]
-        before_execute_overlap_mode = (
-            context.scene.tool_settings.sequencer_tool_settings.overlap_mode
-        )
-        context.scene.tool_settings.sequencer_tool_settings.overlap_mode = "SHUFFLE"
+        state_backup = {
+            "sequence-names": [seq.name for seq in context.sequences],
+            "selected-sequence-names": [seq.name for seq in context.selected_sequences],
+            "overlap-mode": (
+                context.scene.tool_settings.sequencer_tool_settings.overlap_mode
+            ),
+        }
+
+        try:
+            return self._execute_unsafe(context, state_backup)
+        except Exception as exc:
+            self.report({"ERROR"}, get_exception_traceback_str(exc))
+            self.graceful_state_recovering(state_backup, context)
+            return {"CANCELLED"}
+
+    def _execute_unsafe(self, context, state_backup):  # noqa: PLR0912, PLR0915
+        sequencer_tool_settings = context.scene.tool_settings.sequencer_tool_settings
+        sequencer_tool_settings.overlap_mode = "SHUFFLE"
+
         first_movie_sequence_fps = None
         for seq in context.sequences:
             if seq.type == "MOVIE":
                 first_movie_sequence_fps = int(seq.fps)
                 break
+        if first_movie_sequence_fps is None:
+            return self.graceful_error(
+                "ERROR_INVALID_INPUT",
+                "No movie sequence found in the scene.",
+                state_backup,
+                context,
+            )
+
+        file_name, file_ext = os.path.splitext(self.filepath)
 
         try:
-            time_marks = read_marks_from_text_file(
-                self.filepath,
-                first_movie_sequence_fps,
-            )
+            if file_ext == ".srt":
+                time_marks = get_marks_from_srt_lines(
+                    self.filepath,
+                    first_movie_sequence_fps,
+                )
+            else:
+                time_marks = get_marks_from_text_lines(
+                    self.filepath,
+                    first_movie_sequence_fps,
+                )
         except ValueError as exc:
-            self.report({"ERROR_INVALID_INPUT"}, str(exc))
-            return {"CANCELLED"}
+            return self.graceful_error(
+                "ERROR_INVALID_INPUT",
+                str(exc),
+                state_backup,
+                context,
+            )
 
         sequences_by_order_number = get_selected_sequences_number_by_order(
             context,
         )
+
         for time_mark in time_marks:
             try:
                 seqs = sequences_by_order_number[time_mark[0]]
             except KeyError:
-                self.report(
-                    {"ERROR_INVALID_INPUT"},
+                return self.graceful_error(
+                    "ERROR_INVALID_INPUT",
                     (
                         f"Sequence number {time_mark[0]} not found in"
                         " selection. Check that you've selected sounds"
                         " along with their movie clips."
                     ),
+                    state_backup,
+                    context,
                 )
-                return {"CANCELLED"}
             else:
                 time_mark.append(seqs)
 
         if self.mute_original_sequences:
             bpy.ops.sequencer.mute(unselected=False)
 
-        selection_copy_offset_y = get_y_offset_of_first_free_channel_for_selection(
+        selection_copy_offset_y = get_y_offset_of_first_free_channel_for_sequences(
             context,
+            context.selected_sequences,
         )
         last_channel_frame_end = 0
         initial_frame = min([seq.frame_final_start for seq in time_marks[0][3]])
@@ -280,14 +382,12 @@ class Text2Sequences(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
             # Save last channel frame end
             last_channel_frame_end = last_channel_frame_end + frame_end - frame_start
 
-        context.scene.tool_settings.sequencer_tool_settings.overlap_mode = (
-            before_execute_overlap_mode
-        )
+        sequencer_tool_settings.overlap_mode = state_backup["overlap-mode"]
 
         new_sequences = [
             seq
             for seq in context.sequences
-            if seq.name not in before_execute_sequence_names
+            if seq.name not in state_backup["sequence-names"]
         ]
 
         select_sequences(new_sequences)
@@ -304,7 +404,7 @@ class Text2Sequences(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
                 [
                     seq
                     for seq in context.sequences
-                    if seq.name in before_execute_sequence_names
+                    if seq.name in state_backup["sequence-names"]
                 ],
             )
 
