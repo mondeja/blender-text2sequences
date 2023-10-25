@@ -1,6 +1,8 @@
 # blender-text2sequences
 
-Plugin add-on to select a group of strips and create sequences based on time marks defined in text files.
+Blender add-on to select a group of strips and create sequences based on time marks defined in text files.
+
+Ideal to create a first edition of a video based on a script or create video previews.
 
 ## Download
 
@@ -28,7 +30,7 @@ top-left checkbox:
 
 ## Usage
 
-Create a file with a content like:
+Create a `.txt` file and edit it with a content like:
 
 ```txt
 1 00:01 00:03
