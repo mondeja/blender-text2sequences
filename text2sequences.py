@@ -18,7 +18,7 @@ bl_info = {
     "author": "mondeja",
     "license": "BSD-3-Clause",
     "category": "Sequencer",
-    "version": (0, 0, 7),
+    "version": (0, 0, 8),
     "blender": (2, 90, 0),
     "support": "COMMUNITY",
 }
@@ -49,9 +49,9 @@ def time_string_to_frames(time_string, fps, miliseconds_separator="."):
     if len(time_parts) == 3:  # noqa: PLR2004
         hours, minutes, seconds = time_parts
     elif len(time_parts) == 2:  # noqa: PLR2004
-        hours, minutes, seconds = 0, time_parts[0], time_parts[1]
+        hours, minutes, seconds = 0, *time_parts
     else:
-        raise ValueError("Invalid time string")
+        raise ValueError(f"Invalid time string '{time_string}'")
 
     return ms_frames + (int(hours) * 3600 + int(minutes) * 60 + int(seconds)) * fps
 
@@ -149,7 +149,7 @@ def get_marks_from_srt_lines(filepath, fps):
     for line_index, line in enumerate(read_lines(filepath)):
         if line.isdigit():
             inside_channel = int(line)
-        elif "-->" in line:
+        elif "-->" in line and re.match(r"^\d+:\d+:\d+,\d+ --> \d+:\d+:\d+,\d+$", line):
             time_mark = [inside_channel]
             for part in line.split("-->"):
                 try:
@@ -456,7 +456,6 @@ class Text2Sequences(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
         return bool(len(context.selected_sequences))
 
 
-# Only needed if you want to add into a dynamic menu
 def menu_func_import(self, _context):
     self.layout.operator(
         Text2Sequences.bl_idname,

@@ -6,10 +6,10 @@ Blender add-on to select a group of strips and create sequences based on time ma
 
 ## Download
 
-Download the addon using [the next link](https://github.com/mondeja/blender-text2sequences/releases/download/v0.0.7/text2sequences.py):
+Download the addon using [the next link](https://github.com/mondeja/blender-text2sequences/releases/download/v0.0.8/text2sequences.py):
 
 ```
-https://github.com/mondeja/blender-text2sequences/releases/download/v0.0.7/text2sequences.py
+https://github.com/mondeja/blender-text2sequences/releases/download/v0.0.8/text2sequences.py
 ```
 
 ## Install
