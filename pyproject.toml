@@ -1,0 +1,60 @@
+[tool.black]
+line-length = 80
+target-version = ["py38"]
+
+[tool.ruff]
+line-length = 80
+target-version = "py38"
+select = [
+  "W",
+  "B",
+  "E",
+  "I",
+  "F",
+  "A",
+  "D",
+  "G",
+  "Q",
+  "PL",
+  "UP",
+  "PT",
+  "C4",
+  "EXE",
+  "ISC",
+  "T20",
+  "INP",
+  "ARG",
+  "SIM",
+  "RET",
+  "FBT",
+  "ERA",
+  "T10",
+  "COM",
+  "SLOT",
+]
+ignore = ["E203", "D103"]
+
+[tool.ruff.pydocstyle]
+convention = "google"
+
+[tool.ruff.flake8-quotes]
+inline-quotes = "double"
+
+[tool.ruff.flake8-pytest-style]
+fixture-parentheses = false
+parametrize-values-type = "tuple"
+parametrize-values-row-type = "tuple"
+
+[tool.ruff.isort]
+lines-after-imports = 2
+combine-as-imports = true
+force-wrap-aliases = true
+known-first-party = []
+known-local-folder = ["tests"]
+required-imports = []
+extra-standard-library = [
+  "zoneinfo",
+  "graphlib",
+  "tomllib",
+  "wsgiref.types"
+]
