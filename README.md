@@ -66,7 +66,7 @@ In this example, a continuos sequence will be generated using pieces of the orig
 
 ### Syntax
 
-#### Time marks
+#### `.txt`
 
 The time marks are defined each one in a line with the next format:
 
@@ -78,9 +78,9 @@ The time marks are defined each one in a line with the next format:
 - `<start-time>` (_time_): Start time of the cut in the original movie clip.
 - `<end-time>` (_time_): End time of the cut in the original movie clip.
 
-You can create comments starting the line with a `#` character.
+Supports comments with `#` characters and fields separation by any number of spaces or tabs.
 
-#### _time_
+##### _time_
 
 Mark times are defined in one of the next regular expressions:
 
@@ -95,11 +95,33 @@ Mark times are defined in one of the next regular expressions:
 \d+
 ```
 
+#### `.srt`
+
+The time marks are defined in SRT format, changing the number of the subtitle by the number of the media container (movie sequence) to use.
+
+```txt
+<media-container>
+<start-time> --> <end-time>
+```
+
+- `<media-container>` (_number_): Number of the media container (movie clip) to use. Starts in 1.
+- `<start-time>` (_SRT time_): Start time of the cut in the original movie clip.
+- `<end-time>` (_SRT time_): End time of the cut in the original movie clip.
+
+Supports comments with `#` characters and fields separation by any number of spaces or tabs.
+
+##### _SRT time_
+
+```srt
+# <hours>:<minutes>:<seconds>(,<microseconds>)? (eg. 01:02:03,456)
+(\d+:)?\d+:\d+(\,\d+)
+```
+
 ### Properties
 
 When you click on `Add` -> `Text to sequences`, the file browser will display a menu at the side with options to customize the generation of the new timeline of sequences.
 
 - <a href="#property-select_new_sequences">#</a> **Select new sequences** (_enabled_): Select the new generated sequences after creating them.
 - <a href="#property-select_original_sequences">#</a> **Select original sequences**: Select the original sequences after creating the new ones.
-- <a href="#property-mute_original_sequences">#</a> **Mute original sequences**: Mute channels of original movie clips after creating the new ones.
-- <a href="#property-mute_new_sequences">#</a> **Mute new sequences**: Mute channels of new movie clips after creating them.
+- <a href="#property-mute_original_sequences">#</a> **Mute original sequences**: Mute channels of original sequences after creating the new ones.
+- <a href="#property-mute_new_sequences">#</a> **Mute new sequences**: Mute channels of new sequences after creating them.
