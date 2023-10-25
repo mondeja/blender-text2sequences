@@ -18,7 +18,7 @@ bl_info = {
     "author": "mondeja",
     "license": "BSD-3-Clause",
     "category": "Sequencer",
-    "version": (0, 0, 6),
+    "version": (0, 0, 7),
     "blender": (2, 90, 0),
     "support": "COMMUNITY",
 }
@@ -225,6 +225,13 @@ class Text2Sequences(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
         default=False,
     )
 
+    channel_y_offset: bpy.props.IntProperty(
+        name="Channel Y offset",
+        description="Offset in Y axis for new sequences.",
+        default=0,
+        min=0,
+    )
+
     def graceful_error(self, error_type, error_msg, state_backup, context):
         """Report an error and cancel the operator."""
         self.report({error_type}, error_msg)
@@ -348,10 +355,14 @@ class Text2Sequences(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
             )
 
             offset_y = (
-                selection_copy_offset_y
-                + (2 if i % 2 == 0 else 0)
-                + ((n_sequence_channel - 1) * 2)
-            ) - 2
+                (
+                    selection_copy_offset_y
+                    + (2 if i % 2 == 0 else 0)
+                    + ((n_sequence_channel - 1) * 2)
+                )
+                - 2
+                + self.channel_y_offset
+            )
 
             # Copy all selected clips and move to the outputs
             bpy.ops.sequencer.duplicate_move()
