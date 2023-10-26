@@ -18,7 +18,7 @@ bl_info = {
     "author": "mondeja",
     "license": "BSD-3-Clause",
     "category": "Sequencer",
-    "version": (0, 0, 8),
+    "version": (0, 0, 9),
     "blender": (2, 90, 0),
     "support": "COMMUNITY",
 }
@@ -227,9 +227,23 @@ class Text2Sequences(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
 
     channel_y_offset: bpy.props.IntProperty(
         name="Channel Y offset",
-        description="Offset in Y axis for new sequences.",
+        description="Offset in Y axis (channels) for new sequences.",
         default=0,
         min=0,
+    )
+
+    frames_x_offset: bpy.props.IntProperty(
+        name="Frames X offset",
+        description="Offset in X axis (frames) for new sequences.",
+        default=0,
+        step=30,
+    )
+
+    time_x_offset: bpy.props.FloatProperty(
+        name="Time X offset",
+        description="Offset in X axis (time) for new sequences.",
+        default=0,
+        subtype="TIME_ABSOLUTE",
     )
 
     def graceful_error(self, error_type, error_msg, state_backup, context):
@@ -271,7 +285,7 @@ class Text2Sequences(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
             self.graceful_state_recovering(state_backup, context)
             return {"CANCELLED"}
 
-    def get_time_marks(self, state_backup, context):
+    def get_time_marks_and_fps(self, state_backup, context):
         """Get time marks from the input file."""
         fps = None
         for seq in context.sequences:
@@ -322,7 +336,7 @@ class Text2Sequences(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
             else:
                 time_mark.append(seqs)
 
-        return time_marks
+        return time_marks, fps
 
     def _execute_unsafe(self, context, state_backup):
         if not ON_BLENDER_2:
@@ -331,7 +345,7 @@ class Text2Sequences(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
             )
             sequencer_tool_settings.overlap_mode = "SHUFFLE"
 
-        time_marks = self.get_time_marks(state_backup, context)
+        time_marks, fps = self.get_time_marks_and_fps(state_backup, context)
 
         if self.mute_original_sequences:
             bpy.ops.sequencer.mute(unselected=False)
@@ -409,7 +423,9 @@ class Text2Sequences(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
                 value=(
                     -frame_start
                     + last_channel_frame_end
-                    - X_OFFSET_FRAMES_SPACE_TO_DRAW,
+                    - X_OFFSET_FRAMES_SPACE_TO_DRAW
+                    + self.frames_x_offset
+                    + int(self.time_x_offset * fps),
                     0,
                 ),
                 snap=False,

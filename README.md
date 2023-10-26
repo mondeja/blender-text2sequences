@@ -6,10 +6,10 @@ Blender add-on to select a group of strips and create sequences based on time ma
 
 ## Download
 
-Download the addon using [the next link](https://github.com/mondeja/blender-text2sequences/releases/download/v0.0.8/text2sequences.py):
+Download the addon using [the next link](https://github.com/mondeja/blender-text2sequences/releases/download/v0.0.9/text2sequences.py):
 
 ```
-https://github.com/mondeja/blender-text2sequences/releases/download/v0.0.8/text2sequences.py
+https://github.com/mondeja/blender-text2sequences/releases/download/v0.0.9/text2sequences.py
 ```
 
 ## Install
@@ -154,4 +154,6 @@ When you click on `Add` -> `Text to sequences`, the file browser will display a 
 - <a href="#property-select_original_sequences">#</a> **Select original sequences**: Select the original sequences after creating the new ones.
 - <a href="#property-mute_new_sequences">#</a> **Mute new sequences**: Mute channels of new sequences after creating them.
 - <a href="#property-mute_original_sequences">#</a> **Mute original sequences**: Mute channels of original sequences after creating the new ones.
-- <a href="#property-channel_y_offset">#</a> **Channel Y offset**: Offset in Y axis of the new sequences in the timeline.
+- <a href="#property-channel_y_offset">#</a> **Channel Y offset** (_0_): Offset in channels (Y axis) for the new sequences of the timeline.
+- <a href="#property-frames_x_offset">#</a> **Frames X offset** (_0_): Offset in frames (X axis) for the new sequences of the timeline.
+- <a href="#property-time_x_offset">#</a> **Time X offset** (_0_): Offset in duration (X axis) for the new sequences of the timeline.
